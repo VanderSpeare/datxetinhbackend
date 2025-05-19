@@ -40,12 +40,14 @@ async def verify_token(authorization: str = Header(None)):
         return None
     try:
         if not authorization.startswith("Bearer "):
-            raise HTTPException(status_code=401, detail="Invalid authorization header")
+        logger.info("Invalid authorization header format")
+        raise HTTPException(status_code=401, detail="Invalid token")
         token = authorization.split(" ")[1]
         payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
         user_id = payload.get("userId")
         if not user_id:
-            raise HTTPException(status_code=401, detail="Invalid token")
+        logger.info("No userId in token")
+        raise HTTPException(status_code=401, detail="Invalid token")
         # Convert string user_id to ObjectId for MongoDB query
         user = users_collection.find_one({"_id": ObjectId(user_id)})
         if not user:
