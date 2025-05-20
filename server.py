@@ -31,7 +31,7 @@ db = client['busData']
 trips_collection = db['buses']
 users_collection = db['users']
 
-JWT_SECRET = "my_very_secure_secret_2025"
+JWT_SECRET = "your_secret_key"
 
 # Token verification
 async def verify_token(authorization: str = Header(None)):
