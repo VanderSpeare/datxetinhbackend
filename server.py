@@ -220,4 +220,42 @@ async def search_trips(request: SearchRequest, user_id: Optional[str] = Depends(
                     ("price", 1)
                 ]).limit(max(1, request.max_results or 5))
                 for trip in trips:
+                    logger.debug(f"Raw WebSocket trip data: {trip}")
+                    trip_id = str(trip.get("_id")) if isinstance(trip.get("_id"), ObjectId) else str(trip.get("id", "N/A"))
+                    trip_recommendation = TripRecommendation(
+                        id=trip_id,
+                        source=str(trip.get("startingPoint", "N/A")),
+                        destination=str(trip.get("destination", "N/A")),
+                        source_station_id=str(trip.get("sourceStationId", "N/A")),
+                        destination_station_id=str(trip.get("destinationStationId", "N/A")),
+                        source_station=str(trip.get("sourceStation", trip.get("startingPoint", "N/A"))),
+                        destination_station=str(trip.get("destinationStation", trip.get("destination", "N/A"))),
+                        departure_time=str(trip.get("departureTime", "N/A")),
+                        departure_date=str(trip.get("departureDate", "N/A")),
+                        price=float(trip.get("price", 0)),
+                        duration=int(trip.get("duration", 0)),
+                        bus_type=str(trip.get("busType", "Standard")),
+                        operator=str(trip.get("operator", "N/A")),
+                        operator_type=str(trip.get("operatorType", "Small")),
+                        amenities=trip.get("amenities", []),
+                        rating=float(trip.get("rating", 0)),
+                        rank_score=float(trip.get("rankScore", 0.0)),
+                        available_seats=int(trip.get("availableSeats", 30)),
+                        recommendation="Updated via WebSocket"
+                    )
+                    trip_list.append(trip_recommendation.model_dump())
+    
+                logger.info(f"WebSocket sending {len(trip_list)} trips for source: {source}, destination: {destination}")
+                await websocket.send_json({"trips": trip_list})
+        except Exception as e:
+            logger.error(f"WebSocket error: {str(e)}")
+            await websocket.send_json({"error": f"WebSocket error: {str(e)}"})
+        finally:
+            await websocket.close()
+            logger.info("WebSocket connection closed")
+
+if __name__ == "__main__":
+    logger.info("Starting FastAPI server on 0.0.0.0:8000")
+    logger.info("Registered endpoints: /api/health, /api/trips/search (POST), /ws/trips")
+    uvicorn.run(app, host="0.0.0.0", port=8000)
                    
